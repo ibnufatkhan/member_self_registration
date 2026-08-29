@@ -60,7 +60,7 @@ if (!function_exists('schemaTableName')) {
 if (!function_exists('isAdminUrl')) {
     function isAdminUrl(string $url): bool
     {
-        return str_contains($url, 'admin');
+        return str_contains(strtolower($url), 'admin');
     }
 }
 

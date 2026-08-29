@@ -2,10 +2,11 @@
 /**
  * @author Drajat Hasan
  * @email drajathasan20@gmail.com
+ * @contributor Ibnufatkhan
  * @create date 2022-03-28 10:28:36
- * @modify date 2023-12-03 05:09:20
+ * @modify date 2026-08-29
  * @license GPLv3
- * @desc [description]
+ * @requires PHP >= 8.3
  */
 
 use SLiMS\Table\Schema;

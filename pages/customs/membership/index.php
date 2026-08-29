@@ -1,6 +1,7 @@
 <?php
 /**
  * Copyright (C) 2007,2008  Arie Nugraha (dicarve@yahoo.com)
+ * PHP 8.3 adjustments: Ibnufatkhan
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,17 +27,7 @@ use SLiMS\Plugins;
 use SLiMS\Filesystems\Storage;
 use SLiMS\DB;
 
-/* Just In Case for PHP < 5.4 */
-/* Taken From imageman (http://www.php.net/manual/en/function.getimagesizefromstring.php#113976) */
-/* Make sure to set allow_url_fopen = on inside your php.ini */
-if (version_compare(phpversion(), '5.4', '<')) 
-{
-    function getimagesizefromstring($string_data)
-    {
-        $uri = 'data://application/octet-stream;base64,'  . base64_encode($string_data);
-        return getimagesize($uri);
-    }
-}
+/* getimagesizefromstring() is available natively on PHP 8.3 */
 
 /* REMOVE IMAGE */
 if (isset($_POST['removeImage']) && isset($_POST['mimg']) && isset($_POST['img'])) {
@@ -571,7 +562,7 @@ if (isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'd
     $activeSchema = DB::getInstance()->query('select structure from ' . $table . ' where status =  1');
     $activeSchemaData = $activeSchema->fetchObject();
     if ($activeSchemaData === false) $activeSchemaData = null;
-    $structure = json_decode($activeSchemaData?->structure, true)??[];
+    $structure = decodeJson($activeSchemaData?->structure ?? '[]', true);
 
     foreach ($structure as $item) {
         if ($item['field'] === 'advance') {
@@ -604,7 +595,7 @@ if (isset($_POST['detail']) OR (isset($_GET['action']) AND $_GET['action'] == 'd
                         $list[] = [$value, $value];
                     }
 
-                    $form->addCheckBox('advfield[' . $dbfield . ']', $item['name']??'', $list, json_decode($member_custom_data[$dbfield]??'', true)??[],' class="form-control"');
+                    $form->addCheckBox('advfield[' . $dbfield . ']', $item['name']??'', $list, decodeJson($member_custom_data[$dbfield] ?? '[]', true),' class="form-control"');
                     break;
 
                 case 'text':

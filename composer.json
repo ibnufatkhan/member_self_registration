@@ -1,0 +1,21 @@
+{
+    "name": "ibnufatkhan/member_self_registration",
+    "description": "SLiMS plugin for online member self-registration, compatible with PHP 8.3",
+    "type": "slims-plugin",
+    "license": "GPL-3.0-or-later",
+    "require": {
+        "php": ">=8.3"
+    },
+    "authors": [
+        {
+            "name": "Drajat Hasan",
+            "email": "drajathasan20@gmail.com",
+            "homepage": "https://github.com/drajathasan"
+        },
+        {
+            "name": "Ibnufatkhan",
+            "homepage": "https://github.com/ibnufatkhan",
+            "role": "Contributor (PHP 8.3 port)"
+        }
+    ]
+}

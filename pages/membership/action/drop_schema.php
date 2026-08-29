@@ -1,36 +1,46 @@
 <?php
+/**
+ * @author Drajat Hasan
+ * @contributor Ibnufatkhan
+ * @requires PHP >= 8.3
+ */
+
 use SLiMS\DB;
 use SLiMS\Plugins;
 use SLiMS\Table\Schema;
 
 defined('INDEX_AUTH') or die('Direct access is not allowed');
 
-// Run hook before droping schema
 Plugins::getInstance()->execute('member_self_before_drop_schema', [
     'schemaById' => $schemaById,
 ]);
 
-// Fetch active schema
-$schemaById->execute([$_POST['schema_id']]);
+$schemaById->execute([$_POST['schema_id'] ?? 0]);
 $detail = $schemaById->fetchObject();
 
-// Delete schema data
-DB::getInstance()->prepare('delete from `self_registration_schemas` where `id` = ?')->execute([$_POST['schema_id']]);
-$delete = Schema::drop('self_registration_' . trim(str_replace(' ', '_', strtolower($detail->name))));
+if ($detail === false) {
+    exit;
+}
 
-// filtering only for advance field only
-$advanceOnly = array_filter(json_decode($detail->structure, TRUE), function($column){
-    return $column['field'] === 'advance';
+DB::getInstance()->prepare('delete from `self_registration_schemas` where `id` = ?')->execute([$_POST['schema_id'] ?? 0]);
+Schema::drop(schemaTableName((string) $detail->name));
+
+$advanceOnly = array_filter(decodeJson($detail->structure ?? '[]', true), static function (array $column): bool {
+    return ($column['field'] ?? '') === 'advance';
 });
 
-// Set only column name
-$fieldsToDrop = array_map(function($data) {
-    if (preg_match('/\|/', $data['advfield'])) {
-        $data['advfield'] = explode(',', $data['advfield'])[0];
+$fieldsToDrop = array_map(static function (array $data): string {
+    $advfield = (string) ($data['advfield'] ?? '');
+    if (str_contains($advfield, '|')) {
+        $advfield = explode(',', $advfield, 2)[0];
     }
-    return $data['advfield'];
+
+    return $advfield;
 }, $advanceOnly);
 
-// Drop column from member custom
-foreach($fieldsToDrop as $column) Schema::dropColumn('member_custom', $column);
+foreach ($fieldsToDrop as $column) {
+    if ($column !== '') {
+        Schema::dropColumn('member_custom', $column);
+    }
+}
 exit;

@@ -3,10 +3,11 @@ use SLiMS\Table\Schema;
 
 defined('INDEX_AUTH') or die('Direct access is not allowed!');
 
-$columns = implode('', array_merge(array_map(function($item) {
-    return '<option value="' . $item . '">' . $item . '</option>';
-}, array_values(array_filter(Schema::table('member')->columns(), function($column) {
-    if (!preg_match('/(expire|regis|since|notes|input|last_|is_)/', $column)) return true;
+$columns = implode('', array_merge(array_map(static function (mixed $item): string {
+    $item = (string) $item;
+    return '<option value="' . htmlspecialchars($item, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($item, ENT_QUOTES, 'UTF-8') . '</option>';
+}, array_values(array_filter(Schema::table('member')->columns(), static function (mixed $column): bool {
+    return is_string($column) && !preg_match('/(expire|regis|since|notes|input|last_|is_)/', $column);
 }))), ['<option value="advance">Ruas Mahir</option>']));
 
 // create new instance

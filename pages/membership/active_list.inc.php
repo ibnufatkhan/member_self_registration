@@ -7,9 +7,13 @@ defined('INDEX_AUTH') or die('Direct access is not allowed!');
 $datagrid = new simbio_datagrid();
 
 $data = $activeSchema->fetchObject();
-$structure = json_decode($data->structure, true);
-$structure = array_merge(array_values(array_filter($structure, function($column) {
-    return in_array($column['field'], ['member_id','member_name']);
+if ($data === false) {
+    echo '<div class="alert alert-warning">Skema aktif tidak ditemukan.</div>';
+    return;
+}
+$structure = decodeJson($data->structure ?? '[]', true);
+$structure = array_merge(array_values(array_filter($structure, static function (mixed $column): bool {
+    return is_array($column) && in_array($column['field'] ?? '', ['member_id', 'member_name'], true);
 })), [['name' => _('Input Date'), 'field' => 'created_at']]);
 
 $columns = [];
@@ -22,7 +26,7 @@ foreach ($structure as $no => $detail) {
 }
 
 // table spec
-$table_spec = 'self_registration_' . trim(str_replace(' ', '_', strtolower($data->name)));
+$table_spec = schemaTableName((string) $data->name);
 
 $datagrid->setSQLColumn(...$columns);
 

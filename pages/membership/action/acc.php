@@ -1,16 +1,27 @@
 <?php
+/**
+ * @author Drajat Hasan
+ * @contributor Ibnufatkhan
+ * @requires PHP >= 8.3
+ */
+
 use SLiMS\DB;
 use SLiMS\Plugins;
 
 defined('INDEX_AUTH') or die('Direct access is not allowed!');
 
-$member_id = $_POST['form']['member_id']??0;
+$member_id = $_POST['form']['member_id'] ?? 0;
 Plugins::getInstance()->execute('member_self_before_acc', ['member_id' => $member_id, 'activeSchema' => $activeSchema]);
 
 $schema = $activeSchema->fetchObject();
-$baseTable = 'self_registration_' . trim(strtolower(str_replace(' ', '_', $schema->name)));
+if ($schema === false) {
+    redirect()->back();
+    exit;
+}
 
-$data = DB::getInstance()->prepare('select * from ' . $baseTable . ' where member_id = ?');
+$baseTable = schemaTableName((string) $schema->name);
+
+$data = DB::getInstance()->prepare('select * from `' . $baseTable . '` where member_id = ?');
 $data->execute([$member_id]);
 
 if ($data->rowCount() < 1) {
@@ -19,15 +30,22 @@ if ($data->rowCount() < 1) {
 }
 
 $result = $data->fetch(PDO::FETCH_ASSOC);
+if (!is_array($result)) {
+    redirect()->back();
+    exit;
+}
+
 $result_customs = [];
 
 $columnNames = array_keys($result);
 foreach ($columnNames as $columnName) {
-    $newValue = $_POST['form'][$columnName]??'';
+    $newValue = $_POST['form'][$columnName] ?? '';
 
-    if (is_array($newValue)) $newValue = json_encode($newValue);
+    if (is_array($newValue)) {
+        $newValue = json_encode($newValue);
+    }
 
-    if (substr($columnName, 0,4) === 'adv_') {
+    if (str_starts_with((string) $columnName, 'adv_')) {
         if (!isset($result_customs['member_id'])) {
             $result_customs['member_id'] = $member_id;
         }
@@ -36,19 +54,20 @@ foreach ($columnNames as $columnName) {
         continue;
     }
 
-    if ($columnName === 'mpasswd' && !empty($newValue)) {
-        $_POST['form'][$columnName] = password_hash($newValue, PASSWORD_BCRYPT);
+    if ($columnName === 'mpasswd' && $newValue !== '' && $newValue !== null) {
+        $_POST['form'][$columnName] = password_hash((string) $newValue, PASSWORD_BCRYPT);
+        $newValue = $_POST['form'][$columnName];
     }
 
-    if (empty($newValue)) continue;
-    if (is_array($newValue)) $newValue = json_encode($newValue);
+    if ($newValue === '' || $newValue === null) {
+        continue;
+    }
 
     $result[$columnName] = $newValue;
 }
 
 $result['input_date'] = $result['created_at'];
-unset($result['created_at']);
-unset($result['updated_at']);
+unset($result['created_at'], $result['updated_at']);
 
 $result['register_date'] = date('Y-m-d');
 $result['member_since_date'] = date('Y-m-d');
@@ -60,16 +79,16 @@ if (isset($result['member_type_id'])) {
     $memberType = DB::getInstance()->prepare('select member_periode from mst_member_type where member_type_id = ?');
     $memberType->execute([$result['member_type_id']]);
 
-    if ($memberType->rowCount() == 1) {
+    if ($memberType->rowCount() === 1) {
         $memberTypeData = $memberType->fetchObject();
-        $periode = $memberTypeData->member_periode;
-        $result['expire_date'] = date('Y-m-d', strtotime('+' . $periode . ' days'));
+        if ($memberTypeData !== false) {
+            $periode = $memberTypeData->member_periode;
+            $result['expire_date'] = date('Y-m-d', strtotime('+' . $periode . ' days'));
+        }
     }
 }
 
-$columns = implode(',', array_map(function($column) {
-    return '`' . $column . '` = ?';
-}, array_keys($result)));
+$columns = implode(',', array_map(static fn(string $column): string => '`' . $column . '` = ?', array_keys($result)));
 
 $insert = DB::getInstance()->prepare(<<<SQL
 insert ignore 
@@ -80,9 +99,7 @@ SQL);
 $process = $insert->execute(array_values($result));
 
 if (count($result_customs) && $process) {
-    $column_customs = implode(',', array_map(function($column) {
-        return '`' . $column . '` = ?';
-    }, array_keys($result_customs)));
+    $column_customs = implode(',', array_map(static fn(string $column): string => '`' . $column . '` = ?', array_keys($result_customs)));
 
     $insert_custom = DB::getInstance()->prepare(<<<SQL
     insert ignore 
@@ -94,18 +111,16 @@ if (count($result_customs) && $process) {
 }
 
 if ($process) {
-    
-    if (isset($process_custom) && $process_custom == false) {
+    if (isset($process_custom) && $process_custom === false) {
         toastr('Gagal menyimpan data custom')->success();
     }
-    
+
     toastr('Data berhasil disimpan')->success();
     echo '<script>top.jQuery.colorbox.close();</script>';
 
-    // delete data
-    $delete = DB::getInstance()->prepare('delete from ' . $baseTable . ' where member_id = ?');
+    $delete = DB::getInstance()->prepare('delete from `' . $baseTable . '` where member_id = ?');
     $delete->execute([$member_id]);
-    
+
     echo '<script>top.jQuery.colorbox.close();</script>';
     redirect()->simbioAJAX(pluginUrl(reset: true));
 }

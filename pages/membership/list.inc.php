@@ -18,15 +18,16 @@ if ($schemas->rowCount() < 1) {
     $addUrl = pluginUrl(['section' => 'add_schema']);
     $iterateAt = 0;
     $checked = '';
-    $activeId = $activeSchema->rowCount() ? $activeSchema->fetchObject()->id : 0;
+    $activeRow = $activeSchema->rowCount() > 0 ? $activeSchema->fetchObject() : false;
+    $activeId = ($activeRow !== false) ? (int) $activeRow->id : 0;
 
     echo '<div id="schemas" class="my-5 mx-3 d-flex flex-wrap" schema-active="' . $activeId . '">';
     while ($result = $schemas->fetchObject()) {
         $iterateAt++;
         $bgColor = substr(md5($result->name), 0,6);
         $fnColor = textColor($bgColor);
-        $info = json_decode($result->info);
-        $info->desc = substr(strip_tags($info->desc), 0,100);
+        $info = decodeJson($result->info ?? '{}');
+        $info->desc = substr(strip_tags((string) ($info->desc ?? '')), 0, 100);
 
         if ($result->status == 1) $checked = 'checked';
 
@@ -34,20 +35,23 @@ if ($schemas->rowCount() < 1) {
         $previewUrl = pluginUrl(['headless' => 'yes', 'schema_id' => $result->id, 'section' => 'form_preview']);
         $deleteUrl = pluginUrl(['headless' => 'yes', 'section' => 'list']);
         $exportUrl = pluginUrl(['action' => 'export_schema', 'schema_id' => $result->id]);
+        $infoTitle = htmlspecialchars((string) ($info->title ?? ''), ENT_QUOTES, 'UTF-8');
+        $infoDesc = htmlspecialchars((string) ($info->desc ?? ''), ENT_QUOTES, 'UTF-8');
+        $schemaName = htmlspecialchars((string) $result->name, ENT_QUOTES, 'UTF-8');
         echo <<<HTML
         <div class="card col-4">
             <div class="card-img-top rounded-lg" style="background-color: #{$bgColor}; color: #{$fnColor}; height: 20px"></div>
             <div class="card-body">
                 <div class="d-flex justify-content-between">
-                    <h5 class="card-title font-weight-bold">{$result->name}</h5>
+                    <h5 class="card-title font-weight-bold">{$schemaName}</h5>
                     <a href="{$exportUrl}" target="blindSubmit" title="Ekspor skema" class="btn btn-outline-info">Ekspor</a>
 
                 </div>
                 <p class="card-text d-flex flex-column">
                     <label><strong>Judul Form</strong></label>
-                    {$info->title}
+                    {$infoTitle}
                     <label><strong>Deskripsi</strong></label>
-                    {$info->desc}
+                    {$infoDesc}
                 </p>
                 <div class="d-flex flex-row justify-content-between align-items-center">
                     <div class="custom-control custom-switch">

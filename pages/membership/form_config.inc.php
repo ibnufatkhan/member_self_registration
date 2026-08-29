@@ -3,7 +3,10 @@
 defined('INDEX_AUTH') or die('Direct access is not allowed!');
 
 $data = $activeSchema->fetchObject();
-$option = json_decode($data->option??'');
+if ($data === false) {
+    $data = null;
+}
+$option = decodeJson($data?->option ?? '{}');
 
 // create new instance
 $form = new simbio_form_table_AJAX('mainForm', pluginUrl(reset: true), 'post');

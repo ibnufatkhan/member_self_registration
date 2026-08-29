@@ -1,8 +1,10 @@
 <?php
 /**
  * @Created by          : Drajat Hasan
+ * @Contributor         : Ibnufatkhan
  * @Date                : 2021-05-07 05:25:56
  * @File name           : index.php
+ * @requires PHP        : >= 8.3
  */
 use SLiMS\DB;
 use SLiMS\Plugins;
@@ -50,12 +52,11 @@ $routes = [
     'active_schema' => [],
     'form_config' => [],
     'drop_schema' => ['schemaById' => $schemaById],
-    'active_schema' => [],
     'acc' => ['activeSchema' => $activeSchema],
-    'delete_reg' => ['activeSchema' => $activeSchema]
+    'delete_reg' => ['activeSchema' => $activeSchema],
 ];
 
-$params = $routes[$action]??null;
+$params = ($action !== null && array_key_exists($action, $routes)) ? $routes[$action] : null;
 if ($params !== null) action($action, $params);
 /*---- End of Http Request Process ----*/
 

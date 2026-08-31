@@ -50,10 +50,125 @@ if (!function_exists('decodeJson')) {
     }
 }
 
+if (!function_exists('buildSchemaTableName')) {
+    /**
+     * Compute the physical table name from a schema display name.
+     * The schemas.name column used to be VARCHAR(32), so a longer name can be
+     * truncated in the database while CREATE TABLE used the original string.
+     */
+    function buildSchemaTableName(string $name): string
+    {
+        $slug = strtolower(trim((string) preg_replace('/\s+/', '_', $name)));
+        $slug = trim($slug, '_');
+
+        return 'self_registration_' . $slug;
+    }
+}
+
+if (!function_exists('listSelfRegistrationTables')) {
+    /**
+     * @return list<string>
+     */
+    function listSelfRegistrationTables(): array
+    {
+        static $cache = null;
+
+        if (is_array($cache)) {
+            return $cache;
+        }
+
+        $cache = [];
+
+        try {
+            $statement = \SLiMS\DB::getInstance()->query('SHOW TABLES');
+            while ($row = $statement->fetch(PDO::FETCH_NUM)) {
+                $table = (string) ($row[0] ?? '');
+                if ($table !== '' && str_starts_with($table, 'self_registration_') && $table !== 'self_registration_schemas') {
+                    $cache[] = $table;
+                }
+            }
+        } catch (Throwable) {
+            $cache = [];
+        }
+
+        return $cache;
+    }
+}
+
+if (!function_exists('resolveSchemaTableName')) {
+    function resolveSchemaTableName(string $name): string
+    {
+        $computed = buildSchemaTableName($name);
+
+        try {
+            if (Schema::hasTable($computed)) {
+                return $computed;
+            }
+        } catch (Throwable) {
+            // Fall through to prefix matching when the truncated name does not exist.
+        }
+
+        $matches = [];
+        foreach (listSelfRegistrationTables() as $table) {
+            if ($table === $computed || str_starts_with($table, $computed)) {
+                $matches[] = $table;
+            }
+        }
+
+        if ($matches === []) {
+            return $computed;
+        }
+
+        usort($matches, static fn(string $a, string $b): int => strlen($b) <=> strlen($a));
+
+        return $matches[0];
+    }
+}
+
+if (!function_exists('registrationTableName')) {
+    function registrationTableName(?object $schema, ?string $fallbackName = null): string
+    {
+        $stored = is_object($schema) ? trim((string) ($schema->table_name ?? '')) : '';
+        if ($stored !== '') {
+            try {
+                if (Schema::hasTable($stored)) {
+                    return $stored;
+                }
+            } catch (Throwable) {
+            }
+        }
+
+        $name = $fallbackName ?? (is_object($schema) ? (string) ($schema->name ?? '') : '');
+
+        return resolveSchemaTableName($name);
+    }
+}
+
 if (!function_exists('schemaTableName')) {
     function schemaTableName(string $name): string
     {
-        return 'self_registration_' . trim(strtolower(str_replace(' ', '_', $name)));
+        return resolveSchemaTableName($name);
+    }
+}
+
+if (!function_exists('rememberSchemaTableName')) {
+    function rememberSchemaTableName(int|string $schemaId, string $tableName): void
+    {
+        if ($schemaId === '' || $schemaId === 0 || $tableName === '') {
+            return;
+        }
+
+        try {
+            if (!Schema::hasColumn('self_registration_schemas', 'table_name')) {
+                return;
+            }
+
+            \SLiMS\DB::getInstance()
+                ->prepare('update `self_registration_schemas` set `table_name` = ? where `id` = ?')
+                ->execute([$tableName, $schemaId]);
+        } catch (Throwable) {
+            return;
+        }
     }
 }
 

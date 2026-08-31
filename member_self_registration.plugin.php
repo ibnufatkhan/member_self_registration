@@ -3,7 +3,7 @@
  * Plugin Name: member_self_registration
  * Plugin URI: https://github.com/ibnufatkhan/member_self_registration
  * Description: Plugin untuk daftar online, kompatibel PHP 8.3
- * Version: 2.1.0
+ * Version: 2.1.1
  * Author: Drajat Hasan
  * Author URI: https://github.com/drajathasan
  * Contributor: Ibnufatkhan

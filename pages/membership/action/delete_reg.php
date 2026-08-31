@@ -15,7 +15,7 @@ if ($schema === false) {
     exit;
 }
 
-$baseTable = schemaTableName((string) $schema->name);
+$baseTable = registrationTableName($schema);
 
 Plugins::getInstance()->execute('member_self_before_reject', ['baseTable' => $baseTable]);
 

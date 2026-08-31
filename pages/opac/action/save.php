@@ -9,6 +9,7 @@ use SLiMS\DB;
 use SLiMS\Plugins;
 use SLiMS\Filesystems\Storage;
 use SLiMS\Captcha\Factory as Captcha;
+use SLiMS\Table\Schema;
 use Volnix\CSRF\CSRF;
 
 defined('INDEX_AUTH') or die('Direct access is not allowed!');
@@ -47,7 +48,12 @@ try {
 
     $sqlSet = [];
     $sqlParams = [];
-    $sqlRaw = 'insert ignore into `' . schemaTableName((string) $schema->name) . '` set ';
+    $registrationTable = registrationTableName($schema);
+    if (!Schema::hasTable($registrationTable)) {
+        throw new Exception('Tabel pendaftaran tidak ditemukan. Skema aktif tidak memiliki tabel data.');
+    }
+
+    $sqlRaw = 'insert ignore into `' . $registrationTable . '` set ';
 
     foreach ($_POST['form'] as $order => $value) {
         if (!isset($structure[$order]) || !is_array($structure[$order])) {

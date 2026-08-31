@@ -1,4 +1,4 @@
-# Member Self Registration v2.1.0 (PHP 8.3)
+# Member Self Registration v2.1.1 (PHP 8.3)
 
 Plugin SLiMS untuk pendaftaran anggota secara mandiri (daftar online). Versi ini disesuaikan agar berjalan di **PHP 8.3** sesuai prasyarat SLiMS 9 Bulian terbaru.
 
@@ -28,6 +28,7 @@ Plugin ini merupakan pengembangan dari karya asli [Drajat Hasan](https://github.
 - Menggunakan `json_validate()` (fitur PHP 8.3) saat impor skema
 - Penanganan null yang lebih ketat pada hasil `fetchObject()` dan `json_decode()`
 - Reflection property diakses lewat nama properti, bukan `array_pop()` pada daftar properti privat
+- v2.1.1: memperbaiki error tabel pendaftaran tidak ditemukan jika nama skema lebih dari 32 karakter (nama di database terpotong, sementara tabel fisik memakai nama lengkap)
 
 ## Disclaimer
 

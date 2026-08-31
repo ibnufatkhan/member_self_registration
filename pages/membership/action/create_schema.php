@@ -53,7 +53,7 @@ $_POST['name'] = preg_replace('/[^A-Za-z\s]/', '', (string) $_POST['name']) ?? '
 if (trim((string) $_POST['name']) === '') {
     exit(toastr('Nama skema tidak boleh kosong!')->warning('Peringatan'));
 }
-$newTable = schemaTableName($_POST['name']);
+$newTable = buildSchemaTableName($_POST['name']);
 
 $insert->execute([
     $_POST['name'],
@@ -63,6 +63,8 @@ $insert->execute([
         return $data;
     }, $columns), JSON_UNESCAPED_UNICODE),
 ]);
+
+$schemaId = (int) DB::getInstance()->lastInsertId();
 
 Plugins::getInstance()->execute('member_self_before_create_schema', [
     'memberSchema' => $memberSchema,
@@ -74,6 +76,9 @@ Plugins::getInstance()->execute('member_self_before_create_schema', [
 ]);
 
 createSelfRegistrationTables($newTable, $columns, $hadCustomTable);
+if ($schemaId > 0) {
+    rememberSchemaTableName($schemaId, $newTable);
+}
 
 redirect()->simbioAJAX(pluginUrl(reset: true));
 exit;

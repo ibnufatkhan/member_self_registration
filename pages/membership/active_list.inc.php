@@ -1,5 +1,6 @@
 <?php
 use SLiMS\Plugins;
+use SLiMS\Table\Schema;
 
 defined('INDEX_AUTH') or die('Direct access is not allowed!');
 
@@ -25,8 +26,21 @@ foreach ($structure as $no => $detail) {
     $columns[] = '`' . $detail['field'] . '` AS `' . $detail['name'] . '`';
 }
 
-// table spec
-$table_spec = schemaTableName((string) $data->name);
+$table_spec = registrationTableName($data);
+
+if (!Schema::hasTable($table_spec)) {
+    echo '<div class="alert alert-danger p-3">';
+    echo '<strong>Tabel pendaftaran tidak ditemukan.</strong>';
+    echo '<p class="mb-1">Skema aktif: <code>' . htmlspecialchars((string) $data->name, ENT_QUOTES, 'UTF-8') . '</code></p>';
+    echo '<p class="mb-0">Nama tabel yang dicari: <code>' . htmlspecialchars($table_spec, ENT_QUOTES, 'UTF-8') . '</code></p>';
+    echo '<p class="mt-2 mb-0">Kemungkinan nama skema terpotong (batas lama 32 karakter). Nonaktifkan lalu aktifkan ulang skema, atau buat skema baru dengan nama yang lebih pendek setelah memperbarui plugin.</p>';
+    echo '</div>';
+    return;
+}
+
+if (isset($data->id)) {
+    rememberSchemaTableName((int) $data->id, $table_spec);
+}
 
 $datagrid->setSQLColumn(...$columns);
 
@@ -58,5 +72,13 @@ Plugins::getInstance()->execute('member_self_before_datagrid', [
 ]);
 
 // put the result into variables
-$datagrid_result = $datagrid->createDataGrid($dbs, $table_spec, 10, false);
-echo $datagrid_result;
+try {
+    $datagrid_result = $datagrid->createDataGrid($dbs, $table_spec, 10, false);
+    echo $datagrid_result;
+} catch (Throwable $e) {
+    echo '<div class="alert alert-danger p-3">Gagal memuat daftar pendaftaran dari tabel <code>'
+        . htmlspecialchars($table_spec, ENT_QUOTES, 'UTF-8')
+        . '</code>. '
+        . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8')
+        . '</div>';
+}

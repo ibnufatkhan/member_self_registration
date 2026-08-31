@@ -35,7 +35,7 @@ SQL);
 
 $insert->execute($values);
 
-$newTable = schemaTableName((string) $new_data['name']);
+$newTable = buildSchemaTableName((string) $new_data['name']);
 $structure = decodeJson($new_data['structure'], true);
 
 $hadCustomTable = (bool) count(array_filter($structure, static fn(array $column): bool => ($column['field'] ?? '') === 'advance'));
@@ -62,6 +62,13 @@ Plugins::getInstance()->execute('member_self_before_create_schema', [
 ]);
 
 createSelfRegistrationTables($newTable, $structure, $hadCustomTable, skipExistingCustomColumns: true);
+
+$idLookup = DB::getInstance()->prepare('select id from self_registration_schemas where name = ? order by id desc limit 1');
+$idLookup->execute([(string) $new_data['name']]);
+$schemaId = (int) ($idLookup->fetchColumn() ?: ($new_data['id'] ?? 0));
+if ($schemaId > 0) {
+    rememberSchemaTableName($schemaId, $newTable);
+}
 
 toastr('Berhasil mengimport skema')->success();
 echo <<<HTML

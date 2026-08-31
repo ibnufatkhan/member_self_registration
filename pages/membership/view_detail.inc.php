@@ -9,7 +9,7 @@ if ($schema === false) {
     exit;
 }
 $table_slug = trim(strtolower(str_replace(' ', '_', (string) $schema->name)));
-$table_name = schemaTableName((string) $schema->name);
+$table_name = registrationTableName($schema);
 
 Plugins::getInstance()->execute('member_self_before_preview_detail', ['schema' => $schema, 'table_name' => $table_slug]);
 

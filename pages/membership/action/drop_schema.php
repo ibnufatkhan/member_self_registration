@@ -23,7 +23,7 @@ if ($detail === false) {
 }
 
 DB::getInstance()->prepare('delete from `self_registration_schemas` where `id` = ?')->execute([$_POST['schema_id'] ?? 0]);
-Schema::drop(schemaTableName((string) $detail->name));
+Schema::drop(registrationTableName($detail));
 
 $advanceOnly = array_filter(decodeJson($detail->structure ?? '[]', true), static function (array $column): bool {
     return ($column['field'] ?? '') === 'advance';

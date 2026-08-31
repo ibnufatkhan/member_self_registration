@@ -19,7 +19,7 @@ if ($schema === false) {
     exit;
 }
 
-$baseTable = schemaTableName((string) $schema->name);
+$baseTable = registrationTableName($schema);
 
 $data = DB::getInstance()->prepare('select * from `' . $baseTable . '` where member_id = ?');
 $data->execute([$member_id]);

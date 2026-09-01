@@ -351,16 +351,43 @@ if (!function_exists('action')) {
     {
         global $sysconf;
         extract($attribute);
-        $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
-        $caller = $trace[1] ?? ($trace[0] ?? []);
-        $callerFile = $caller['file'] ?? '';
-        $info = pathinfo($callerFile);
 
-        if (file_exists($path = ($info['dirname'] ?? '') . DS . 'action' . DS . basename($actionName) . '.php')) {
-            include $path;
-        } else {
-            throw new Exception('Action ' . $actionName . ' is not found!', 404);
+        $actionFile = basename($actionName) . '.php';
+        $separator = defined('DS') ? DS : DIRECTORY_SEPARATOR;
+        $candidates = [];
+
+        foreach (debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS) as $frame) {
+            $file = $frame['file'] ?? '';
+            if ($file === '') {
+                continue;
+            }
+
+            $dir = dirname($file);
+            $candidates[] = $dir . $separator . 'action' . $separator . $actionFile;
+
+            // Pages live in pages/membership or pages/opac; climb one level if needed.
+            $parent = dirname($dir);
+            if ($parent !== $dir) {
+                $candidates[] = $parent . $separator . 'action' . $separator . $actionFile;
+            }
         }
+
+        if (defined('MSLR')) {
+            $candidates[] = MSLR . $separator . 'pages' . $separator . 'membership' . $separator . 'action' . $separator . $actionFile;
+            $candidates[] = MSLR . $separator . 'pages' . $separator . 'opac' . $separator . 'action' . $separator . $actionFile;
+        }
+
+        $candidates[] = __DIR__ . $separator . 'pages' . $separator . 'membership' . $separator . 'action' . $separator . $actionFile;
+        $candidates[] = __DIR__ . $separator . 'pages' . $separator . 'opac' . $separator . 'action' . $separator . $actionFile;
+
+        foreach (array_unique($candidates) as $path) {
+            if (is_file($path)) {
+                include $path;
+                return;
+            }
+        }
+
+        throw new Exception('Action ' . $actionName . ' is not found!', 404);
     }
 }
 
